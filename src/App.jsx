@@ -307,40 +307,93 @@ const PanelMantenimiento = () => {
         </div>
       )}
 
-      {/* --- PESTAÑA PERSONAL (AUDITORÍA) --- */}
-      {activeTab === 'Personal' && (
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="font-bold text-lg">Métricas por Trabajador</h3>
-              <div className="flex gap-2">
-                <select value={mesFiltro} onChange={e => setMesFiltro(e.target.value)} className="p-2 border rounded">
-                  {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>Mes {i+1}</option>)}
-                </select>
-                <input type="number" value={anioFiltro} onChange={e => setAnioFiltro(e.target.value)} className="p-2 border rounded w-24"/>
-              </div>
-            </div>
-            <table className="w-full text-center">
-              <thead className="bg-gray-50">
-                <tr><th className="p-3 text-left">Nombre</th><th>Total Reportes</th><th className="text-red-600">Alta Urgencia</th><th>Acción</th></tr>
-              </thead>
-              <tbody>
-                {estadisticas.map(est => (
-                  <tr key={est.id} className="border-b border-gray-50">
-                    <td className="p-3 text-left font-bold">{est.nombre}</td>
-                    <td className="p-3 font-black text-xl">{est.total}</td>
-                    <td className="p-3 text-red-600 font-bold">{est.alta}</td>
-                    <td className="p-3"><button onClick={() => supabase.from('trabajadores').update({estado: 'Revocado'}).eq('id', est.id)} className="text-xs text-red-400 font-bold border border-red-200 px-2 py-1 rounded">Revocar</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {/* --- PESTAÑA PERSONAL (SOLICITUDES Y AUDITORÍA) --- */}
+{activeTab === 'Personal' && (
+  <div className="space-y-8 animate-in fade-in duration-500">
+    
+    {/* 1. SECCIÓN DE SOLICITUDES PENDIENTES (RESTAURADA) */}
+    <div className="bg-white rounded-2xl shadow-sm border border-yellow-200 overflow-hidden">
+      <div className="bg-yellow-50 p-4 border-b border-yellow-200 flex justify-between items-center">
+        <h3 className="font-bold text-yellow-800">Solicitudes de Acceso Pendientes ⏳</h3>
+        <span className="bg-yellow-200 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold">
+          {trabajadores.filter(t => t.estado === 'Pendiente').length}
+        </span>
+      </div>
+      <table className="w-full text-left">
+        <tbody className="divide-y divide-gray-50">
+          {trabajadores.filter(t => t.estado === 'Pendiente').length === 0 ? (
+            <tr><td className="p-8 text-center text-gray-400 italic">No hay nuevos obreros solicitando acceso.</td></tr>
+          ) : (
+            trabajadores.filter(t => t.estado === 'Pendiente').map(t => (
+              <tr key={t.id} className="hover:bg-yellow-50/50 transition">
+                <td className="p-4">
+                  <p className="font-bold text-gray-800">{t.nombre}</p>
+                  <p className="text-xs text-gray-500">{t.email}</p>
+                </td>
+                <td className="p-4 text-right space-x-2">
+                  <button 
+                    onClick={() => cambiarEstadoTrabajador(t.id, 'Aprobado')} 
+                    className="bg-green-500 text-white px-4 py-1 rounded-lg font-bold text-sm hover:bg-green-600 transition"
+                  >
+                    Aprobar
+                  </button>
+                  <button 
+                    onClick={() => cambiarEstadoTrabajador(t.id, 'Revocado')} 
+                    className="bg-red-50 text-red-600 px-4 py-1 rounded-lg font-bold text-sm hover:bg-red-100 transition"
+                  >
+                    Rechazar
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
-  );
-};
+
+    {/* 2. MÉTRICAS POR TRABAJADOR (LO QUE YA VEÍAS) */}
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="font-bold text-lg text-slate-800">Métricas por Trabajador Autorizado</h3>
+        <div className="flex gap-2">
+          <select value={mesFiltro} onChange={e => setMesFiltro(e.target.value)} className="p-2 border rounded-lg bg-gray-50 text-sm font-semibold">
+            {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>Mes {i+1}</option>)}
+          </select>
+          <input type="number" value={anioFiltro} onChange={e => setAnioFiltro(e.target.value)} className="p-2 border rounded-lg bg-gray-50 text-sm font-semibold w-24"/>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-center">
+          <thead className="bg-gray-50 text-gray-500 text-xs font-bold uppercase">
+            <tr>
+              <th className="p-4 text-left">Nombre</th>
+              <th className="p-4">Total Reportes</th>
+              <th className="p-4 text-red-600">Alta Urgencia</th>
+              <th className="p-4">Acción</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {estadisticas.map(est => (
+              <tr key={est.id} className="hover:bg-gray-50 transition">
+                <td className="p-4 text-left font-bold text-slate-700">{est.nombre}</td>
+                <td className="p-4 font-black text-xl text-slate-800">{est.total}</td>
+                <td className="p-4 text-red-600 font-bold">{est.alta}</td>
+                <td className="p-4">
+                  <button 
+                    onClick={() => cambiarEstadoTrabajador(est.id, 'Revocado')} 
+                    className="text-xs text-red-400 font-bold border border-red-100 px-3 py-1 rounded-full hover:bg-red-50 transition"
+                  >
+                    Revocar Acceso
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+)}
 
 const Home = () => (
   <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
